@@ -226,6 +226,7 @@ uint8_t BSP_SD_DeInit(void)
   */
 uint8_t BSP_SD_ITConfig(void)
 {
+#if defined(SD_DETECT_PIN)
   GPIO_InitTypeDef gpio_init_structure;
 
   /* Configure Interrupt mode for SD detection pin */
@@ -238,7 +239,7 @@ uint8_t BSP_SD_ITConfig(void)
   /* Enable and set SD detect EXTI Interrupt to the lowest priority */
   HAL_NVIC_SetPriority((IRQn_Type)(SD_DETECT_EXTI_IRQn), 0x0F, 0x00);
   HAL_NVIC_EnableIRQ((IRQn_Type)(SD_DETECT_EXTI_IRQn));
-
+#endif
   return MSD_OK;
 }
 
@@ -249,13 +250,13 @@ uint8_t BSP_SD_ITConfig(void)
 uint8_t BSP_SD_IsDetected(void)
 {
   uint8_t  status = SD_PRESENT;
-
+#if defined(SD_DETECT_PIN)
   /* Check SD card detect pin */
   if (HAL_GPIO_ReadPin(SD_DETECT_GPIO_PORT, SD_DETECT_PIN) == GPIO_PIN_SET)
   {
     status = SD_NOT_PRESENT;
   }
-
+#endif
     return status;
 }
 
@@ -357,6 +358,7 @@ __weak void BSP_SD_MspInit(SD_HandleTypeDef *hsd, void *Params)
   */
 __weak void BSP_SD_Detect_MspInit(SD_HandleTypeDef *hsd, void *Params)
 {
+#if defined(SD_DETECT_PIN)
   GPIO_InitTypeDef  gpio_init_structure;
 
   SD_DETECT_GPIO_CLK_ENABLE();
@@ -367,6 +369,7 @@ __weak void BSP_SD_Detect_MspInit(SD_HandleTypeDef *hsd, void *Params)
   gpio_init_structure.Pull      = GPIO_PULLUP;
   gpio_init_structure.Speed     = GPIO_SPEED_HIGH;
   HAL_GPIO_Init(SD_DETECT_GPIO_PORT, &gpio_init_structure);
+#endif
 }
 
 /**
