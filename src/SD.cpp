@@ -598,6 +598,7 @@ uint8_t File::isDirectory()
 			return FALSE;
 		}
 	}
+	return FALSE;
 }
 
 File File::openNextFile(uint8_t mode)
