@@ -1,5 +1,11 @@
 #include <STM32SD.h>
 
+// If SD card slot has no detect pin then define it as SD_DETECT_NONE
+// to ignore it. One other option is to call 'SD.begin()' without parameter.
+#ifndef SD_DETECT_PIN
+#define SD_DETECT_PIN SD_DETECT_NONE
+#endif
+
 #define COUNTOF(__BUFFER__)   (sizeof(__BUFFER__) / sizeof(*(__BUFFER__)))
 #define BUFFERSIZE                       (COUNTOF(wtext) -1)
 
@@ -33,10 +39,18 @@ void setup()
   Serial.println("Creating 'ARDUINO/SD' directory");
   SD.mkdir("ARDUINO/SD");
 
+  /* Test bool operator method */
+  Serial.print("Test bool operator...");
+  if (!MyFile) {
+    Serial.println("OK");
+  } else {
+    Serial.println("Error MyFile should not be initialized!");
+  }
+
   /* Test open() method */
   Serial.println("Opening 'STM32/Toremove.txt' file");
   MyFile = SD.open("STM32/Toremove.txt", FILE_WRITE);
-  if(MyFile) {
+  if (MyFile) {
     Serial.println("Closing 'STM32/Toremove.txt' file");
     MyFile.close();
   } else {
@@ -44,7 +58,7 @@ void setup()
   }
   Serial.println("Opening 'ARDUINO/SD/ARDUINO_SD_TEXT.txt' file");
   MyFile = SD.open("ARDUINO/SD/ARDUINO_SD_TEXT.txt", FILE_WRITE);
-  if(MyFile) {
+  if (MyFile) {
     /* Test print() method */
     Serial.print("writing \"");
     Serial.print((const char*)wtext);
@@ -61,7 +75,7 @@ void setup()
 
   Serial.println("Opening 'ARDUINO/SD/ARDUINO_SD_TEXT.txt' file");
   MyFile = SD.open("ARDUINO/SD/ARDUINO_SD_TEXT.txt");
-  if(MyFile) {
+  if (MyFile) {
     bytesread = MyFile.read(rtext, MyFile.size());
     Serial.println("Closing 'ARDUINO/SD/ARDUINO_SD_TEXT.txt' file");
     MyFile.close();
@@ -71,7 +85,7 @@ void setup()
 
   Serial.println("Opening 'ARDUINO/SD/TEXT.txt' file");
   MyFile = SD.open("ARDUINO/SD/TEXT.txt", FILE_WRITE);
-  if(MyFile) {
+  if (MyFile) {
     byteswritten = MyFile.print((const char*)rtext);
     MyFile.flush();
     Serial.println("Closing 'ARDUINO/SD/TEXT.txt' file");
@@ -82,7 +96,7 @@ void setup()
 
   Serial.println("Opening 'ARDUINO/SD/TEXT.txt' file");
   MyFile = SD.open("ARDUINO/SD/TEXT.txt");
-  if(MyFile) {
+  if (MyFile) {
     /* Test size() method */
     file_size = MyFile.size();
     Serial.print("TEXT.txt size: ");
@@ -91,12 +105,12 @@ void setup()
     /* Test position and seek method */
     Serial.print("TEXT.txt position value: ");
     Serial.println(MyFile.position());
-    if(!MyFile.seek(MyFile.size()+1)) {
+    if (!MyFile.seek(MyFile.size() + 1)) {
       Serial.println("TEXT.txt seek value over size: OK");
     } else {
       Serial.println("TEXT.txt seek value over size: KO");
     }
-    if(MyFile.seek(MyFile.size())) {
+    if (MyFile.seek(MyFile.size())) {
       Serial.println("TEXT.txt seek value to size: OK");
     } else {
       Serial.println("TEXT.txt seek value to size: KO");
@@ -104,7 +118,7 @@ void setup()
     Serial.print("TEXT.txt position value: ");
     Serial.println(MyFile.position());
 
-    if(MyFile.seek(0)) {
+    if (MyFile.seek(0)) {
       Serial.println("TEXT.txt seek value to 0: OK");
     } else {
       Serial.println("TEXT.txt seek value to 0: KO");
@@ -114,7 +128,7 @@ void setup()
 
     /* Test peek() method */
     Serial.println("TEXT.txt peek (10 times): ");
-    for(i = 0; i<10; i++)
+    for (i = 0; i < 10; i++)
     {
       peek_val = MyFile.peek();
       Serial.print(peek_val);
@@ -126,7 +140,7 @@ void setup()
 
     /* Test available() and read() methods */
     Serial.println("TEXT.txt content read byte per byte: ");
-    while(MyFile.available())
+    while (MyFile.available())
     {
       rtext[i] = (uint8_t)MyFile.read();
       Serial.print(rtext[i]);
@@ -144,7 +158,7 @@ void setup()
 
   /* Test isDirectory() method */
   MyFile = File("STM32");
-  if(MyFile) {
+  if (MyFile) {
     Serial.print("Is 'STM32' is a dir: ");
     if (MyFile.isDirectory())
       Serial.println("OK");
@@ -156,7 +170,7 @@ void setup()
 
   Serial.println("Opening 'STM32/Toremove.txt' file");
   MyFile = SD.open("STM32/Toremove.txt");
-  if(MyFile) {
+  if (MyFile) {
     Serial.print("Is 'STM32/Toremove.txt' is a file: ");
     if (MyFile.isDirectory())
       Serial.println("KO");
@@ -169,23 +183,23 @@ void setup()
   }
   /* Test exists(), remove() and rmdir() methods */
   Serial.print("Removing 'STM32/Toremove.txt' file...");
-  while(SD.exists("STM32/Toremove.txt") == TRUE)
+  while (SD.exists("STM32/Toremove.txt") == TRUE)
   {
     SD.remove("STM32/Toremove.txt");
-   }
+  }
   Serial.println("done");
 
   Serial.print("Removing 'STM32' dir...");
-  while(SD.exists("STM32") == TRUE)
+  while (SD.exists("STM32") == TRUE)
   {
     SD.rmdir("STM32");
-   }
+  }
   Serial.println("done");
 
   /* Test println(), println(data) methods */
   Serial.println("Opening 'ARDUINO/SD/PRINT.txt' file");
   MyFile = SD.open("ARDUINO/SD/PRINT.txt", FILE_WRITE);
-  if(MyFile) {
+  if (MyFile) {
     String str = String("This is a String object on line 7");
     Serial.print("Printing to 'ARDUINO/SD/PRINT.txt' file...");
     MyFile.println("This should be line 1");
@@ -205,7 +219,7 @@ void setup()
   /* Test write(buf, len) method */
   Serial.println("Opening 'ARDUINO/SD/WRITE.txt' file");
   MyFile = SD.open("ARDUINO/SD/WRITE.txt", FILE_WRITE);
-  if(MyFile) {
+  if (MyFile) {
     Serial.print("Writing 'ARDUINO/SD/WRITE.txt' file: ");
     byteswritten = MyFile.write(wtext, BUFFERSIZE);
     Serial.print(byteswritten);
@@ -219,13 +233,13 @@ void setup()
   /* Test read(buf, len) method */
   Serial.println("Opening 'ARDUINO/SD/WRITE.txt' file");
   MyFile = SD.open("ARDUINO/SD/WRITE.txt");
-  if(MyFile) {
+  if (MyFile) {
     Serial.println("Reading 'ARDUINO/SD/WRITE.txt' file:");
     bytesread = MyFile.read(rtext, MyFile.size());
     Serial.println((const char*)rtext);
     Serial.println("Closing 'ARDUINO/SD/WRITE.txt' file");
     MyFile.close();
-   } else {
+  } else {
     Serial.println("Error to open 'ARDUINO/SD/WRITE.txt' file");
   }
   Serial.println("###### End of the SD tests ######");
@@ -233,5 +247,5 @@ void setup()
 
 void loop()
 {
- // do nothing
+  // do nothing
 }

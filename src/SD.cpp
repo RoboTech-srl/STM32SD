@@ -59,38 +59,17 @@ SDClass SD;
 
 /**
   * @brief  Link SD, register the file system object to the FatFs mode and configure
-  *         relatives SD IOs except SD Detect Pin
+  *         relatives SD IOs including SD Detect Pin if any
   * @param  None
   * @retval TRUE or FALSE
   */
-uint8_t SDClass::begin()
-{
-	/*##-1- Initializes SD IOs #############################################*/
-	if (_card.init()) {
-		return _fatFs.init();
-    }
-    else
-    {
-	  return FALSE;
-    }
-}
-
-/**
-  * @brief  Link SD, register the file system object to the FatFs mode and configure
-  *         relatives SD IOs including SD Detect Pin
-  * @param  None
-  * @retval TRUE or FALSE
-  */
-uint8_t SDClass::begin(uint8_t cspin)
+uint8_t SDClass::begin(uint32_t cspin)
 {
 	/*##-1- Initializes SD IOs #############################################*/
 	if (_card.init(cspin)) {
 		return _fatFs.init();
     }
-    else
-    {
-	  return FALSE;
-    }
+    return FALSE;
 }
 
 /**
@@ -155,7 +134,7 @@ File SDClass::open(const char *filepath)
 {
     File file = File(filepath);
 
-    if(f_open(&file._fil, filepath, FA_READ) != FR_OK)
+    if(f_open(file._fil, filepath, FA_READ) != FR_OK)
     {
 		f_opendir(&file._dir, filepath);
 	}
@@ -177,7 +156,7 @@ File SDClass::open(const char *filepath, uint8_t mode)
         mode = mode | FA_CREATE_ALWAYS;
     }
 
-    if(f_open(&file._fil, filepath, mode) != FR_OK)
+    if(f_open(file._fil, filepath, mode) != FR_OK)
     {
 		f_opendir(&file._dir, filepath);
 	}
@@ -215,8 +194,10 @@ File SDClass::openRoot(void)
 File::File()
 {
 	_name = NULL;
-	 _fil.fs = 0;
-	 _dir.fs = 0;
+	_fil = (FIL*)malloc(sizeof(FIL));
+	assert(_fil != NULL );
+	_fil->fs = 0;
+	_dir.fs = 0;
 }
 
 File::File(const char* name)
@@ -224,7 +205,9 @@ File::File(const char* name)
 	_name = (char*)malloc(strlen(name) +1);
 	assert(_name  != NULL );
 	sprintf(_name, "%s", name);
-	_fil.fs = 0;
+    _fil = (FIL*)malloc(sizeof(FIL));
+	assert(_fil != NULL );
+	_fil->fs = 0;
 	_dir.fs = 0;
 }
 
@@ -366,7 +349,7 @@ int File::read()
 {
     uint8_t byteread;
     int8_t data;
-    f_read(&_fil, (void *)&data, 1, (UINT *)&byteread);
+    f_read(_fil, (void *)&data, 1, (UINT *)&byteread);
     return data;
 }
 
@@ -380,7 +363,7 @@ int File::read(void* buf, size_t len)
 {
     uint8_t bytesread;
 
-    f_read(&_fil, buf, len, (UINT *)&bytesread);
+    f_read(_fil, buf, len, (UINT *)&bytesread);
     return bytesread;
 
 }
@@ -394,12 +377,13 @@ void File::close()
 {
 	if(_name)
 	{
-		if(_fil.fs != 0) {
+		if(_fil && _fil->fs != 0) {
 			/* Flush the file before close */
-			f_sync(&_fil);
+			f_sync(_fil);
 
 			/* Close the file */
-			f_close(&_fil);
+			f_close(_fil);
+            free(_fil);
 		}
 
 		if(_dir.fs != 0) {
@@ -418,7 +402,7 @@ void File::close()
   */
 void File::flush()
 {
-    f_sync(&_fil);
+    f_sync(_fil);
 }
 
 /**
@@ -442,7 +426,7 @@ int File::peek()
 uint32_t File::position()
 {
     uint32_t filepos = 0;
-    filepos = f_tell(&_fil);
+    filepos = f_tell(_fil);
     return filepos;
 }
 
@@ -459,7 +443,7 @@ uint8_t File::seek(uint32_t pos)
   }
   else
   {
-    if(f_lseek(&_fil, pos) != FR_OK)
+    if(f_lseek(_fil, pos) != FR_OK)
     {
       return FALSE;
     }
@@ -479,12 +463,12 @@ uint32_t File::size()
 {
     uint32_t file_size = 0;
 
-    file_size = f_size(&_fil);
+    file_size = f_size(_fil);
     return(file_size);
 }
 
 File::operator bool() {
-  return  ((_name == NULL) || ((_fil.fs == 0) && (_dir.fs == 0))) ? FALSE : TRUE;
+  return  ((_name == NULL) || ((_fil == NULL) && (_dir.fs == 0)) || ((_fil != NULL) && (_fil->fs == 0) && (_dir.fs == 0))) ? FALSE : TRUE;
 }
 /**
   * @brief  Write data to the file
@@ -505,7 +489,7 @@ size_t File::write(uint8_t data)
 size_t File::write(const char *buf, size_t size)
 {
     size_t byteswritten;
-    f_write(&_fil, (const void *)buf, size, (UINT *)&byteswritten);
+    f_write(_fil, (const void *)buf, size, (UINT *)&byteswritten);
     return byteswritten;
 }
 
@@ -584,7 +568,7 @@ uint8_t File::isDirectory()
 	assert(_name  != NULL );
 	if (_dir.fs != 0)
 		return TRUE;
-	else if (_fil.fs != 0)
+	else if (_fil->fs != 0)
 		return FALSE;
 	// if not init get info
 	if (f_stat(_name, &fno) == FR_OK)
@@ -593,11 +577,8 @@ uint8_t File::isDirectory()
 		{
 			return TRUE;
 		}
-		else
-		{
-			return FALSE;
-		}
 	}
+	// Assume not a directory
 	return FALSE;
 }
 
