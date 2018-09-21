@@ -207,7 +207,7 @@ File SDClass::openRoot(void)
 
 	if(f_opendir(&file._dir, _fatFs.getRoot()) != FR_OK)
 	{
-		file._dir.fs = 0;
+		file._dir.obj.fs = 0;
 	}
     return file;
 }
@@ -215,8 +215,8 @@ File SDClass::openRoot(void)
 File::File()
 {
 	_name = NULL;
-	 _fil.fs = 0;
-	 _dir.fs = 0;
+	 _fil.obj.fs = 0;
+	 _dir.obj.fs = 0;
 }
 
 File::File(const char* name)
@@ -224,8 +224,8 @@ File::File(const char* name)
 	_name = (char*)malloc(strlen(name) +1);
 	assert(_name  != NULL );
 	sprintf(_name, "%s", name);
-	_fil.fs = 0;
-	_dir.fs = 0;
+	_fil.obj.fs = 0;
+	_dir.obj.fs = 0;
 }
 
 /** List directory contents to Serial.
@@ -364,10 +364,10 @@ void File::printTwoDigits(uint8_t v) {
   */
 int File::read()
 {
-    uint8_t byteread;
-    int8_t data;
-    f_read(&_fil, (void *)&data, 1, (UINT *)&byteread);
-    return data;
+    size_t bytesread = 0;
+    uint8_t data;
+    f_read(&_fil, (void *)&data, 1, (UINT *)&bytesread);
+    return bytesread ? data : -1;
 }
 
 /**
@@ -378,11 +378,10 @@ int File::read()
   */
 int File::read(void* buf, size_t len)
 {
-    uint8_t bytesread;
+    size_t bytesread;
 
     f_read(&_fil, buf, len, (UINT *)&bytesread);
     return bytesread;
-
 }
 
 /**
@@ -394,7 +393,7 @@ void File::close()
 {
 	if(_name)
 	{
-		if(_fil.fs != 0) {
+		if(_fil.obj.fs != 0) {
 			/* Flush the file before close */
 			f_sync(&_fil);
 
@@ -402,7 +401,7 @@ void File::close()
 			f_close(&_fil);
 		}
 
-		if(_dir.fs != 0) {
+		if(_dir.obj.fs != 0) {
 			f_closedir(&_dir);
 		}
 
@@ -484,7 +483,7 @@ uint32_t File::size()
 }
 
 File::operator bool() {
-  return  ((_name == NULL) || ((_fil.fs == 0) && (_dir.fs == 0))) ? FALSE : TRUE;
+  return  ((_name == NULL) || ((_fil.obj.fs == 0) && (_dir.obj.fs == 0))) ? FALSE : TRUE;
 }
 /**
   * @brief  Write data to the file
@@ -582,9 +581,9 @@ uint8_t File::isDirectory()
 {
     FILINFO fno;
 	assert(_name  != NULL );
-	if (_dir.fs != 0)
+	if (_dir.obj.fs != 0)
 		return TRUE;
-	else if (_fil.fs != 0)
+	else if (_fil.obj.fs != 0)
 		return FALSE;
 	// if not init get info
 	if (f_stat(_name, &fno) == FR_OK)
@@ -653,7 +652,7 @@ void File::rewindDirectory(void)
 {
 	if(isDirectory())
 	{
-		if(_dir.fs != 0) {
+		if(_dir.obj.fs != 0) {
 			f_closedir(&_dir);
 		}
 		f_opendir(&_dir, _name);
